@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Iqra School Portal</title>
+    
+    <meta name="theme-color" content="#1a237e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        :root { --primary: #1a237e; --accent: #00bcd4; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-size: cover; background-attachment: fixed; transition: 0.3s; padding-bottom: 70px; }
+        header { background: var(--primary); color: white; padding: 20px; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .overlay { background: rgba(255, 255, 255, 0.9); min-height: 100vh; padding: 10px; }
+        .card { background: white; max-width: 500px; margin: 15px auto; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        input, select, textarea, button { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:active { transform: scale(0.98); }
+
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 100; }
+        .nav-bar button { background: none; color: #666; border: none; padding: 15px 0; font-size: 12px; }
+        .nav-bar button.active { color: var(--primary); font-weight: bold; }
+
+        .section { display: none; }
+        .active-section { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .notice { background: #fff9c4; border-left: 6px solid #fbc02d; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        @media print { .nav-bar, header, button, .admin-ui { display: none; } }
+    </style>
+</head>
+<body id="mainBody">
+
+<header>
+    <h2 style="margin:0;">IQRA SCHOOL & COLLEGE</h2>
+</header>
+
+<div class="overlay">
+    <div id="home" class="section active-section">
+        <div class="card">
+            <h3>📢 Notice Board</h3>
+            <div id="noticeBox" class="notice">Welcome to the Official Portal!</div>
+        </div>
+    </div>
+
+    <div id="signup" class="section">
+        <div class="card">
+            <h3>📝 New Admission</h3>
+            <input type="text" id="sName" placeholder="Student Name">
+            <input type="text" id="sFather" placeholder="Father Name">
+            <input type="text" id="sRoll" placeholder="Roll Number">
+            <select id="sClass">
+                <option value="9th">Class 9</option><option value="10th">Class 10</option>
+                <option value="11th">1st Year</option><option value="12th">2nd Year</option>
+            </select>
+            <input type="text" id="sSec" placeholder="Section">
+            <input type="number" id="sContact" placeholder="Contact No">
+            <input type="password" id="sPass" placeholder="Password">
+            <button onclick="register()">Submit Admission</button>
+        </div>
+    </div>
+
+    <div id="result" class="section">
+        <div class="card">
+            <h3>📊 View Result</h3>
+            <input type="text" id="searchRoll" placeholder="Enter Roll Number">
+            <button onclick="getResult()">Search Result</button>
+            <div id="resOutput"></div>
+            <button id="pBtn" style="display:none; background:#444;" onclick="window.print()">Print PDF</button>
+        </div>
+    </div>
+
+    <div id="admin" class="section">
+        <div class="card">
+            <h3>🔐 Admin Login</h3>
+            <div id="adminAuth">
+                <input type="password" id="adminKey" placeholder="Enter Admin 🔑">
+                <button onclick="loginAdmin()">Access Admin</button>
+            </div>
+            <div id="adminPanel" style="display:none;" class="admin-ui">
+                <label>Update Background Image:</label>
+                <input type="file" accept="image/*" onchange="setBg(event)">
+                <label>Change Background Color:</label>
+                <input type="color" onchange="setClr(this.value)">
+                
+                <textarea id="noteIn" placeholder="Update Notice..."></textarea>
+                <button onclick="setNotice()">Post Notice</button>
+
+                <hr>
+                <input type="text" id="rRoll" placeholder="Roll No">
+                <input type="text" id="rMark" placeholder="Result (e.g. 88%)">
+                <button onclick="setResult()">Save Result</button>
+                
+                <h4>Registered Students</h4>
+                <div id="stdList" style="overflow-x:auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="nav-bar">
+    <button onclick="nav('home', this)" class="active">🏠<br>Home</button>
+    <button onclick="nav('signup', this)">📝<br>Apply</button>
+    <button onclick="nav('result', this)">📊<br>Result</button>
+    <button onclick="nav('admin', this)">⚙️<br>Admin</button>
+</div>
+
+<script>
+    // Database Functions
+    const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const load = (k, d) => JSON.parse(localStorage.getItem(k)) || d;
+
+    // Navigation
+    function nav(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+        document.querySelectorAll('.nav-bar button').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active-section');
+        btn.classList.add('active');
+    }
+
+    // Load Settings on Start
+    window.onload = () => {
+        const bg = localStorage.getItem('appBg');
+        const clr = localStorage.getItem('appClr');
+        if(bg) document.body.style.backgroundImage = `url(${bg})`;
+        if(clr) document.body.style.backgroundColor = clr;
+        document.getElementById('noticeBox').innerText = localStorage.getItem('appNotice') || "Welcome!";
+    };
+
+    // logic functions
+    function register() {
+        let stds = load('students', []);
+        stds.push({name: sName.value, roll: sRoll.value, class: sClass.value, contact: sContact.value});
+        save('students', stds);
+        alert("Admission Successful!");
+        location.reload();
+    }
+
+    function loginAdmin() {
+        if(adminKey.value === (localStorage.getItem('adminPass') || '545')) {
+            adminAuth.style.display = 'none';
+            adminPanel.style.display = 'block';
+            showList();
+        } else { alert("Wrong Key!"); }
+    }
+
+    function setBg(e) {
+        let r = new FileReader();
+        r.onload = (f) => { 
+            document.body.style.backgroundImage = `url(${f.target.result})`; 
+            localStorage.setItem('appBg', f.target.result);
+        };
+        r.readAsDataURL(e.target.files[0]);
+    }
+
+    function setClr(c) {
+        document.body.style.backgroundImage = 'none';
+        document.body.style.backgroundColor = c;
+        localStorage.setItem('appClr', c);
+    }
+
+    function setNotice() {
+        localStorage.setItem('appNotice', noteIn.value);
+        noticeBox.innerText = noteIn.value;
+        alert("Notice Updated!");
+    }
+
+    function setResult() {
+        let res = load('results', {});
+        res[rRoll.value] = rMark.value;
+        save('results', res);
+        alert("Result Saved!");
+    }
+
+    function getResult() {
+        let res = load('results', {});
+        if(res[searchRoll.value]) {
+            resOutput.innerHTML = `<div class="notice" style="border-color:green;"><b>Roll: ${searchRoll.value}</b><br>Result: ${res[searchRoll.value]}</div>`;
+            pBtn.style.display = 'block';
+        } else { resOutput.innerHTML = "Not Found"; }
+    }
+
+    function showList() {
+        let stds = load('students', []);
+        let h = `<table><tr><th>Name</th><th>Roll</th></tr>`;
+        stds.forEach(s => h += `<tr><td>${s.name}</td><td>${s.roll}</td></tr>`);
+        stdList.innerHTML = h + `</table>`;
+    }
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Active"));
+    }
+</script>
+</body>
+</html>
